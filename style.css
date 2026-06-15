@@ -1,0 +1,104 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #ffe4ec;
+  color: #222;
+}
+
+header {
+  background: #ffd1dd;
+  text-align: center;
+  padding: 30px 15px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 34px;
+}
+
+section {
+  padding: 25px;
+}
+
+.hero {
+  text-align: center;
+  background: #fff4f7;
+}
+
+.whatsapp,
+button {
+  background: #25d366;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 25px;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-block;
+  margin-top: 10px;
+}
+
+.filters button {
+  background: #d94f7d;
+  margin: 5px;
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.product {
+  background: white;
+  border-radius: 18px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.product img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+.badge {
+  display: inline-block;
+  background: #ffd1dd;
+  padding: 5px 10px;
+  border-radius: 15px;
+  margin: 8px 0;
+}
+
+.cart-section {
+  background: #fff4f7;
+}
+
+.cart-item {
+  background: white;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 12px;
+}
+
+.admin {
+  background: #ffeef3;
+}
+
+input,
+select {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.hidden {
+  display: none;
+}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luxe Shopper France Maroc</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>Luxe Beauty</h1>
+  <p>Personal shopper France 🇫🇷 → Maroc 🇲🇦</p>
+  <a class="whatsapp" href="https://wa.me/212625937101" target="_blank">Commander sur WhatsApp</a>
+</header>
+
+<section class="hero">
+  <h2>Produits authentiques</h2>
+  <p>Beauté, parfums, coffrets, sacs, chaussures et accessoires.</p>
+</section>
+
+<section>
+  <h2>Produits</h2>
+
+  <div class="filters">
+    <button onclick="filterProducts('all')">Tous</button>
+    <button onclick="filterProducts('stock')">En stock Maroc</button>
+    <button onclick="filterProducts('commande')">Sur commande</button>
+  </div>
+
+  <div id="products" class="products"></div>
+</section>
+
+<section class="custom-request">
+  <h2>Demande personnalisée</h2>
+  <p>Tu cherches un article qui n’est pas sur le site ? Envoie-moi la photo ou le lien.</p>
+  <a class="whatsapp" href="https://wa.me/212625937101?text=Bonjour,%20je%20cherche%20un%20article%20sur%20commande" target="_blank">
+    Demander sur WhatsApp
+  </a>
+</section>
+<section class="cart-section">
+  <h2>Mon panier</h2>
+  <div id="cart"></div>
+  <h3>Total : <span id="total">0</span> DH</h3>
+  <div id="gift"></div>
+  <button onclick="sendWhatsAppOrder()">Valider ma commande WhatsApp</button>
+</section>
+
+<section class="admin">
+  <h2>Admin - Gestion des produits</h2>
+
+  <input id="adminPassword" type="password" placeholder="Mot de passe admin" />
+  <button onclick="loginAdmin()">Se connecter</button>
+
+  <div id="adminPanel" class="hidden">
+    <input id="productId" type="hidden" />
+
+    <input id="name" placeholder="Nom du produit" />
+    <input id="price" type="number" placeholder="Prix en DH" />
+
+    <input id="imageFile" type="file" accept="image/*" onchange="previewImage(event)" />
+    <img id="imagePreview" class="preview hidden" />
+    <textarea
+    id="pasteZone"
+    placeholder="Clique ici puis Ctrl+V pour coller une image"
+></textarea>
+
+    <select id="type">
+      <option value="stock">En stock Maroc</option>
+      <option value="commande">Sur commande</option>
+    </select>
+
+    <input id="stock" type="number" placeholder="Quantité disponible" />
+
+    <button onclick="saveProduct()">Sauvegarder le produit</button>
+    <button onclick="resetForm()">Annuler</button>
+
+    <h3>Produits ajoutés</h3>
+    <div id="adminProducts"></div>
+
+    <h3>Offre cadeau</h3>
+    <input id="giftName" placeholder="Nom du cadeau" />
+    <input id="giftLimit" type="number" placeholder="Montant minimum en DH" />
+    <button onclick="saveGift()">Sauvegarder cadeau</button>
+  </div>
+</section>
+<script src="script.js"></script>
+</body>
+</html>
