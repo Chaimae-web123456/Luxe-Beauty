@@ -51,48 +51,49 @@ function showPage(pageId) {
 }
 
 async function loadProductsFromSupabase() {
-  const { data, error } = await supabaseClient
+  const { data: productsData, error: productsError } = await supabaseClient
     .from("products")
-    .select(`
-      id,
-      name,
-      description,
-      category,
-      type,
-      created_at,
-      variants (
-        id,
-        variant_name,
-        price,
-        old_price,
-        stock,
-        image_url
-      )
-    `)
-    .order("created_at", { ascending: false });
+    .select("*")
+    .order("id", { ascending: false });
 
-  if (error) {
-    console.error("Erreur chargement produits :", error);
+  if (productsError) {
+    console.error("Erreur produits :", productsError);
     alert("Erreur chargement produits.");
     return;
   }
 
-  products = (data || []).map(product => ({
-    id: product.id,
-    name: product.name,
-    description: product.description || "",
-    category: product.category || "Parfums",
-    type: product.type || "stock",
-    image: product.variants?.[0]?.image_url || "",
-    variants: (product.variants || []).map(variant => ({
-      id: variant.id,
-      name: variant.variant_name,
-      price: Number(variant.price),
-      oldPrice: Number(variant.old_price) || 0,
-      stock: Number(variant.stock) || 0,
-      image: variant.image_url || ""
-    }))
-  }));
+  const { data: variantsData, error: variantsError } = await supabaseClient
+    .from("variants")
+    .select("*");
+
+  if (variantsError) {
+    console.error("Erreur variantes :", variantsError);
+    alert("Erreur chargement variantes.");
+    return;
+  }
+
+  products = (productsData || []).map(product => {
+    const productVariants = (variantsData || []).filter(
+      variant => Number(variant.product_id) === Number(product.id)
+    );
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description || "",
+      category: product.category || "Parfums",
+      type: product.type || "stock",
+      image: productVariants[0]?.image_url || "",
+      variants: productVariants.map(variant => ({
+        id: variant.id,
+        name: variant.variant_name,
+        price: Number(variant.price),
+        oldPrice: Number(variant.old_price) || 0,
+        stock: Number(variant.stock) || 0,
+        image: variant.image_url || ""
+      }))
+    };
+  });
 
   displayProducts();
   displayAdminProducts();
