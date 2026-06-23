@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Beauty</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" onclick="toggleMenu()">☰</button>
+  <h1>Luxe Beauty</h1>
+  <button class="icon-btn" onclick="toggleCart()">🛒 <span id="cartCount">0</span></button>
+</header>
+
+<nav id="sideMenu" class="side-menu">
+  <button onclick="showPage('home')">🏠 Accueil</button>
+  <button onclick="showPage('allProducts')">🛍️ Tous les produits</button>
+  <button onclick="showPage('stock')">🇲🇦 Stock Maroc</button>
+  <button onclick="showPage('commande')">📦 Sur commande</button>
+  <button onclick="showPage('promos')">🎁 Promotions</button>
+  <button onclick="showPage('custom')">🔍 Demande personnalisée</button>
+  <button onclick="showPage('contact')">📞 Contact</button>
+  <button onclick="showPage('admin')">🔐 Administration</button>
+</nav>
+
+<main>
+
+<section id="home" class="page active">
+  <div class="hero">
+    <h2>Personal Shopper France 🇫🇷 → Maroc 🇲🇦</h2>
+    <p>Parfums, brumes, coffrets, soins, maquillage, accessoires et produits sur commande.</p>
+    <button onclick="showPage('allProducts')">Voir les produits</button>
+  </div>
+
+  <h2>Catégories</h2>
+  <div id="categoryBlocks" class="categories"></div>
+
+  <h2>Nouveautés</h2>
+  <div id="homeProducts" class="products"></div>
+</section>
+
+<section id="allProducts" class="page">
+  <h2>Tous les produits</h2>
+  <input id="searchInput" type="text" placeholder="Rechercher..." oninput="displayAllProducts()">
+
+  <div class="filters">
+    <button onclick="setCategoryFilter('all')">Tous</button>
+    <button onclick="setCategoryFilter('Parfums')">Parfums</button>
+    <button onclick="setCategoryFilter('Brumes')">Brumes</button>
+    <button onclick="setCategoryFilter('Coffrets corps')">Coffrets corps</button>
+    <button onclick="setCategoryFilter('Coffrets parfums')">Coffrets parfums</button>
+    <button onclick="setCategoryFilter('Soins corps')">Soins corps</button>
+    <button onclick="setCategoryFilter('Soins cheveux')">Soins cheveux</button>
+    <button onclick="setCategoryFilter('Maquillage')">Maquillage</button>
+    <button onclick="setCategoryFilter('Accessoires')">Accessoires</button>
+  </div>
+
+  <div id="allProductsList" class="products"></div>
+</section>
+
+<section id="stock" class="page">
+  <h2>Stock disponible au Maroc</h2>
+  <div id="stockProducts" class="products"></div>
+</section>
+
+<section id="commande" class="page">
+  <h2>Produits sur commande</h2>
+  <div id="commandeProducts" class="products"></div>
+</section>
+
+<section id="promos" class="page">
+  <h2>Promotions</h2>
+  <div id="promoProducts" class="products"></div>
+</section>
+
+<section id="custom" class="page">
+  <h2>Produit introuvable ?</h2>
+  <input id="customName" placeholder="Nom du produit">
+  <textarea id="customMessage" placeholder="Lien, couleur, taille, référence..."></textarea>
+  <button class="whatsapp" onclick="sendCustomRequest()">Envoyer sur WhatsApp</button>
+</section>
+
+<section id="contact" class="page">
+  <h2>Contact</h2>
+  <a class="whatsapp" href="https://wa.me/212625937101" target="_blank">WhatsApp</a>
+</section>
+
+<section id="admin" class="page">
+  <h2>Administration</h2>
+
+  <input id="adminPassword" type="password" placeholder="Mot de passe admin">
+  <button onclick="loginAdmin()">Connexion</button>
+
+  <div id="adminPanel" class="hidden">
+    <h3>Ajouter / Modifier produit</h3>
+
+    <input id="productId" type="hidden">
+    <input id="name" placeholder="Nom du produit">
+    <textarea id="description" placeholder="Description facultative"></textarea>
+
+    <select id="category">
+      <option value="Parfums">Parfums</option>
+      <option value="Brumes">Brumes</option>
+      <option value="Coffrets corps">Coffrets corps</option>
+      <option value="Coffrets parfums">Coffrets parfums</option>
+      <option value="Soins corps">Soins corps</option>
+      <option value="Soins cheveux">Soins cheveux</option>
+      <option value="Maquillage">Maquillage</option>
+      <option value="Accessoires">Accessoires</option>
+    </select>
+
+    <select id="type">
+      <option value="stock">En stock Maroc</option>
+      <option value="commande">Sur commande</option>
+    </select>
+
+    <h3>Photo produit facultative</h3>
+    <textarea id="pasteZone" placeholder="Clique ici puis colle l'image avec Ctrl + V"></textarea>
+    <img id="imagePreview" class="preview hidden">
+
+    <hr>
+
+    <h3>Variantes</h3>
+
+    <input id="variantName" placeholder="30 ml, 50 ml, Taille M...">
+    <input id="variantPrice" type="number" placeholder="Prix">
+    <input id="variantOldPrice" type="number" placeholder="Ancien prix promo">
+    <input id="variantStock" type="number" placeholder="Stock">
+
+    <textarea id="variantPasteZone" placeholder="Coller photo variante avec Ctrl + V, facultatif"></textarea>
+    <img id="variantImagePreview" class="preview hidden">
+
+    <button id="variantButton" onclick="addVariant()">Ajouter variante</button>
+
+    <div id="variantsList"></div>
+
+    <hr>
+
+    <button onclick="saveProduct()">Sauvegarder produit</button>
+    <button onclick="resetForm()">Annuler</button>
+
+    <h3>Produits enregistrés</h3>
+    <div id="adminProducts"></div>
+
+    <h3>Cadeau automatique</h3>
+    <input id="giftName" placeholder="Nom du cadeau">
+    <input id="giftLimit" type="number" placeholder="Montant minimum">
+    <button onclick="saveGift()">Sauvegarder cadeau</button>
+  </div>
+</section>
+
+</main>
+
+<aside id="cartPanel" class="cart-panel">
+  <h2>Panier</h2>
+  <div id="cart"></div>
+  <h3>Total : <span id="total">0</span> DH</h3>
+  <div id="gift"></div>
+  <button onclick="sendWhatsAppOrder()">Commander sur WhatsApp</button>
+</aside>
+
+<div id="productModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="close" onclick="closeProductModal()">×</button>
+
+    <img id="modalImage">
+    <h2 id="modalName"></h2>
+    <p id="modalDescription"></p>
+    <p id="modalCategory"></p>
+
+    <select id="modalVariant"></select>
+
+    <p>
+      <span id="modalOldPrice" class="old-price"></span>
+      <strong><span id="modalPrice"></span> DH</strong>
+    </p>
+
+    <button onclick="addSelectedVariantToCart()">Ajouter au panier</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
