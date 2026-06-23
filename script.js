@@ -1,3 +1,8 @@
+const SUPABASE_URL = "https://uuqhmasinqzfqteuakew.supabase.co";
+const SUPABASE_KEY = "sb_publishable_3nQIfvrzixgC3-tPg0P7eA_G_V-DamN";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const WHATSAPP_NUMBER = "212625937101";
 const ADMIN_PASSWORD = "admin123";
 
@@ -12,10 +17,10 @@ const CATEGORIES = [
   "Accessoires"
 ];
 
-let products = JSON.parse(localStorage.getItem("products")) || [];
+let products = [];
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-let giftOffer = JSON.parse(localStorage.getItem("giftOffer")) || {
+let giftOffer = {
   name: "Mini cadeau surprise",
   limit: 500
 };
@@ -26,10 +31,6 @@ let currentVariants = [];
 let selectedProduct = null;
 let currentCategoryFilter = "all";
 let editingVariantIndex = null;
-
-function saveProducts() {
-  localStorage.setItem("products", JSON.stringify(products));
-}
 
 function saveCart() {
   localStorage.setItem("cart", JSON.stringify(cart));
@@ -49,16 +50,87 @@ function showPage(pageId) {
   document.getElementById("sideMenu").classList.remove("open");
 }
 
+async function loadProductsFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("products")
+    .select(`
+      id,
+      name,
+      description,
+      category,
+      type,
+      created_at,
+      variants (
+        id,
+        variant_name,
+        price,
+        old_price,
+        stock,
+        image_url
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erreur chargement produits :", error);
+    alert("Erreur chargement produits.");
+    return;
+  }
+
+  products = (data || []).map(product => ({
+    id: product.id,
+    name: product.name,
+    description: product.description || "",
+    category: product.category || "Parfums",
+    type: product.type || "stock",
+    image: product.variants?.[0]?.image_url || "",
+    variants: (product.variants || []).map(variant => ({
+      id: variant.id,
+      name: variant.variant_name,
+      price: Number(variant.price),
+      oldPrice: Number(variant.old_price) || 0,
+      stock: Number(variant.stock) || 0,
+      image: variant.image_url || ""
+    }))
+  }));
+
+  displayProducts();
+  displayAdminProducts();
+}
+
+async function loadGiftFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("gifts")
+    .select("*")
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error("Erreur cadeau :", error);
+    return;
+  }
+
+  if (data && data.length > 0) {
+    giftOffer = {
+      name: data[0].name,
+      limit: Number(data[0].minimum_amount)
+    };
+  }
+
+  displayCart();
+}
+
 function getProductMainImage(product) {
   return product.image || product.variants?.[0]?.image || "https://via.placeholder.com/300x300.png?text=Produit";
 }
 
 function getMinPrice(product) {
+  if (!product.variants || product.variants.length === 0) return 0;
   return Math.min(...product.variants.map(v => Number(v.price)));
 }
 
 function hasPromotion(product) {
-  return product.variants.some(v => Number(v.oldPrice) > Number(v.price));
+  return product.variants?.some(v => Number(v.oldPrice) > Number(v.price));
 }
 
 function renderProductCard(product) {
@@ -110,7 +182,9 @@ function displayHomeProducts() {
   const container = document.getElementById("homeProducts");
   if (!container) return;
 
-  container.innerHTML = products.slice().reverse().map(renderProductCard).join("");
+  container.innerHTML = products.length
+    ? products.map(renderProductCard).join("")
+    : "<p>Aucun produit pour le moment.</p>";
 }
 
 function displayAllProducts() {
@@ -163,7 +237,7 @@ function openProductModal(id) {
 
   const firstVariant = selectedProduct.variants[0];
 
-  document.getElementById("modalImage").src = firstVariant.image || getProductMainImage(selectedProduct);
+  document.getElementById("modalImage").src = firstVariant?.image || getProductMainImage(selectedProduct);
   document.getElementById("modalName").textContent = selectedProduct.name;
   document.getElementById("modalDescription").textContent = selectedProduct.description || "";
   document.getElementById("modalCategory").textContent = `Catégorie : ${selectedProduct.category}`;
@@ -184,8 +258,9 @@ function openProductModal(id) {
 
   document.getElementById("productModal").classList.remove("hidden");
 }
-
 function updateModalPrice() {
+  if (!selectedProduct) return;
+
   const index = Number(document.getElementById("modalVariant").value);
   const variant = selectedProduct.variants[index];
 
@@ -327,6 +402,34 @@ function sendCustomRequest() {
   const message = `Bonjour, je cherche un produit qui n'est pas sur le site.\n\nProduit : ${productName}\nDétails : ${customMessage}`;
 
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+}
+
+async function uploadBase64Image(base64Image) {
+  if (!base64Image) return "";
+
+  const response = await fetch(base64Image);
+  const blob = await response.blob();
+
+  const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
+
+  const { error } = await supabaseClient.storage
+    .from("products")
+    .upload(fileName, blob, {
+      contentType: "image/png",
+      upsert: true
+    });
+
+  if (error) {
+    console.error("Erreur upload image :", error);
+    alert("Erreur upload image.");
+    return "";
+  }
+
+  const { data } = supabaseClient.storage
+    .from("products")
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
 }
 
 function setSelectedImageFromClipboard(file) {
@@ -484,7 +587,7 @@ function deleteVariant(index) {
   displayVariants();
 }
 
-function saveProduct() {
+async function saveProduct() {
   const productId = document.getElementById("productId").value;
   const name = document.getElementById("name").value.trim();
   const description = document.getElementById("description").value.trim();
@@ -501,38 +604,88 @@ function saveProduct() {
     return;
   }
 
-  const mainImage = selectedImage || currentVariants[0].image || "";
+  let productImageUrl = selectedImage && selectedImage.startsWith("data:")
+    ? await uploadBase64Image(selectedImage)
+    : selectedImage;
+
+  let savedProductId = productId;
 
   if (productId) {
-    const product = products.find(p => p.id == productId);
+    const { error } = await supabaseClient
+      .from("products")
+      .update({
+        name,
+        description,
+        category,
+        type
+      })
+      .eq("id", productId);
 
-    product.name = name;
-    product.description = description;
-    product.category = category;
-    product.type = type;
-    product.variants = currentVariants;
-    product.image = mainImage;
+    if (error) {
+      console.error(error);
+      alert("Erreur modification produit.");
+      return;
+    }
+
+    await supabaseClient.from("variants").delete().eq("product_id", productId);
   } else {
-    products.push({
-      id: Date.now(),
-      name,
-      description,
-      image: mainImage,
-      category,
-      type,
-      variants: currentVariants
-    });
+    const { data, error } = await supabaseClient
+      .from("products")
+      .insert({
+        name,
+        description,
+        category,
+        type
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Erreur ajout produit.");
+      return;
+    }
+
+    savedProductId = data.id;
   }
 
-  saveProducts();
-  displayProducts();
-  displayAdminProducts();
+  for (const variant of currentVariants) {
+    let imageUrl = variant.image;
+
+    if (imageUrl && imageUrl.startsWith("data:")) {
+      imageUrl = await uploadBase64Image(imageUrl);
+    }
+
+    if (!imageUrl && productImageUrl) {
+      imageUrl = productImageUrl;
+    }
+
+    const { error } = await supabaseClient
+      .from("variants")
+      .insert({
+        product_id: savedProductId,
+        variant_name: variant.name,
+        price: variant.price,
+        old_price: variant.oldPrice,
+        stock: variant.stock,
+        image_url: imageUrl || ""
+      });
+
+    if (error) {
+      console.error(error);
+      alert("Erreur ajout variante.");
+      return;
+    }
+  }
+
+  await loadProductsFromSupabase();
   resetForm();
-  alert("Produit sauvegardé.");
+  alert("Produit sauvegardé dans Supabase.");
 }
 
 function editProduct(id) {
   const product = products.find(p => p.id === id);
+  if (!product) return;
 
   document.getElementById("productId").value = product.id;
   document.getElementById("name").value = product.name;
@@ -558,13 +711,21 @@ function editProduct(id) {
   showPage("admin");
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
   if (!confirm("Tu veux vraiment supprimer ce produit ?")) return;
 
-  products = products.filter(product => product.id !== id);
-  saveProducts();
-  displayProducts();
-  displayAdminProducts();
+  const { error } = await supabaseClient
+    .from("products")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("Erreur suppression produit.");
+    return;
+  }
+
+  await loadProductsFromSupabase();
 }
 
 function resetForm() {
@@ -587,6 +748,8 @@ function resetForm() {
 
 function displayAdminProducts() {
   const container = document.getElementById("adminProducts");
+  if (!container) return;
+
   container.innerHTML = "";
 
   products.forEach(product => {
@@ -602,7 +765,7 @@ function displayAdminProducts() {
   });
 }
 
-function saveGift() {
+async function saveGift() {
   const giftName = document.getElementById("giftName").value.trim();
   const giftLimit = Number(document.getElementById("giftLimit").value);
 
@@ -611,18 +774,34 @@ function saveGift() {
     return;
   }
 
-  giftOffer = { name: giftName, limit: giftLimit };
-  localStorage.setItem("giftOffer", JSON.stringify(giftOffer));
-  displayCart();
+  const { error } = await supabaseClient
+    .from("gifts")
+    .insert({
+      name: giftName,
+      minimum_amount: giftLimit
+    });
 
-  alert("Offre cadeau sauvegardée.");
+  if (error) {
+    console.error(error);
+    alert("Erreur sauvegarde cadeau.");
+    return;
+  }
+
+  giftOffer = {
+    name: giftName,
+    limit: giftLimit
+  };
+
+  displayCart();
+  alert("Cadeau sauvegardé.");
 }
 
-function initializeApp() {
-  displayProducts();
+async function initializeApp() {
   displayCart();
   setupPasteImage();
   setupVariantPasteImage();
+  await loadGiftFromSupabase();
+  await loadProductsFromSupabase();
 }
 
 initializeApp();
